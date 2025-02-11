@@ -1,0 +1,26 @@
+{
+  "name": "password-website",
+  "version": "1.0.0",
+  "description": "German password generator for kids",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild src/script.ts --bundle --outfile=dist/script.js --sourcemap",
+    "watch": "esbuild src/script.ts --bundle --outfile=dist/script.js --sourcemap --watch",
+    "start": "lite-server",
+    "dev": "concurrently \"npm run watch\" \"npm run start\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.25.0",
+    "lite-server": "^2.6.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ger-morph-pw-gen": "github:KGT1/ger-morph-pw-gen"
+  }
+}
