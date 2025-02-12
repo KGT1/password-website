@@ -116,6 +116,27 @@ button:hover {
     align-items: center;
     gap: 0.5rem;
     min-width: 120px;
+    padding: 1rem;
+}
+
+.dict-description {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    margin-top: 0.3rem;
+    line-height: 1.2;
+}
+
+.current-mode {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    font-weight: normal;
+}
+
+.mode-header {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1rem;
 }
 
 .warning {
@@ -165,6 +186,10 @@ button:hover {
 @media (max-width: 480px) {
     .container {
         padding: 1rem;
+    }
+    
+    .dict-description {
+        font-size: 0.75rem;
     }
 
     h1 {

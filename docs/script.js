@@ -364,8 +364,17 @@
   var loadingElement = document.getElementById("loading");
   var progressElement = document.getElementById("progress");
   var errorElement = document.getElementById("error");
-  var currentMode = PasswordMode.SIMPLE;
+  var currentMode = PasswordMode.STRONG;
   var currentGenerator = null;
+  function updateModeDisplay() {
+    const currentModeDisplay = document.getElementById("currentMode");
+    currentModeDisplay.textContent = `(Aktuell: ${currentMode === PasswordMode.SIMPLE ? "Einfacher Modus" : "Sicherer Modus"})`;
+    modeToggle.textContent = currentMode === PasswordMode.SIMPLE ? "Einfacher Modus" : "Sicherer Modus";
+  }
+  function updateDictDisplay(type) {
+    const currentDictDisplay = document.getElementById("currentDict");
+    currentDictDisplay.textContent = `(Aktuell: ${type === "light" ? "Leicht" : "Normal"})`;
+  }
   async function updatePassword() {
     if (!currentGenerator) return;
     try {
@@ -410,23 +419,27 @@
   }
   modeToggle.addEventListener("click", () => {
     currentMode = currentMode === PasswordMode.SIMPLE ? PasswordMode.STRONG : PasswordMode.SIMPLE;
-    modeToggle.textContent = currentMode === PasswordMode.SIMPLE ? "Einfacher Modus" : "Sicherer Modus";
+    updateModeDisplay();
     updatePassword();
   });
   regenerateBtn.addEventListener("click", updatePassword);
   lightDictBtn.addEventListener("click", () => {
     loadDictionary(DICT_URLS.light);
-    [lightDictBtn, filteredDictBtn, fullDictBtn].forEach((btn) => btn.classList.remove("active"));
+    [lightDictBtn, filteredDictBtn].forEach((btn) => btn.classList.remove("active"));
     lightDictBtn.classList.add("active");
+    updateDictDisplay("light");
   });
   filteredDictBtn.addEventListener("click", () => {
     loadDictionary(DICT_URLS.filtered);
-    [lightDictBtn, filteredDictBtn, fullDictBtn].forEach((btn) => btn.classList.remove("active"));
+    [lightDictBtn, filteredDictBtn].forEach((btn) => btn.classList.remove("active"));
     filteredDictBtn.classList.add("active");
+    updateDictDisplay("filtered");
   });
   document.addEventListener("DOMContentLoaded", () => {
-    loadDictionary(DICT_URLS.filtered);
-    filteredDictBtn.classList.add("active");
+    loadDictionary(DICT_URLS.light);
+    lightDictBtn.classList.add("active");
+    updateModeDisplay();
+    updateDictDisplay("light");
   });
 })();
 //# sourceMappingURL=script.js.map

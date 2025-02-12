@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -17,18 +17,24 @@
 
         <div class="controls">
             <div class="mode-control">
-                <button id="modeToggle">Einfacher Modus</button>
+                <div class="mode-header">
+                    <h3>Sicherheitsmodus: <span id="currentMode" class="current-mode">(Aktuell: Sicherer Modus)</span></h3>
+                </div>
+                <button id="modeToggle">Sicherer Modus</button>
                 <button id="regenerateBtn" class="regenerate-btn">Neu generieren 🔄</button>
             </div>
 
             <div class="dictionary-control">
-                <h3>Wörterbuch auswählen:</h3>
+                <h3>Wörterbuch auswählen: <span id="currentDict" class="current-mode">(Aktuell: Leicht)</span></h3>
                 <div class="dictionary-buttons">
                     <button id="lightDict" class="dict-button">
                         Leicht
-                        <span class="warning">⚠️ Weniger sicher</span>
+                        <div class="dict-description">Nur mit kindgerechten Wörtern</div>
                     </button>
-                    <button id="filteredDict" class="dict-button">Normal</button>
+                    <button id="filteredDict" class="dict-button">
+                        Normal
+                        <div class="dict-description">Gefilterte Wörter (könnte nicht jugendfreie Wörter enthalten)</div>
+                    </button>
                 </div>
             </div>
         </div>

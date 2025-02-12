@@ -19,8 +19,20 @@ const progressElement = document.getElementById('progress') as HTMLDivElement;
 const errorElement = document.getElementById('error') as HTMLDivElement;
 
 // State
-let currentMode = PasswordMode.SIMPLE;
+let currentMode = PasswordMode.STRONG;
 let currentGenerator: PasswordGenerator | null = null;
+
+// UI Update Functions
+function updateModeDisplay(): void {
+    const currentModeDisplay = document.getElementById('currentMode') as HTMLSpanElement;
+    currentModeDisplay.textContent = `(Aktuell: ${currentMode === PasswordMode.SIMPLE ? 'Einfacher Modus' : 'Sicherer Modus'})`;
+    modeToggle.textContent = currentMode === PasswordMode.SIMPLE ? 'Einfacher Modus' : 'Sicherer Modus';
+}
+
+function updateDictDisplay(type: 'light' | 'filtered'): void {
+    const currentDictDisplay = document.getElementById('currentDict') as HTMLSpanElement;
+    currentDictDisplay.textContent = `(Aktuell: ${type === 'light' ? 'Leicht' : 'Normal'})`;
+}
 
 // UI Functions
 async function updatePassword(): Promise<void> {
@@ -76,7 +88,7 @@ async function loadDictionary(url: string): Promise<void> {
 // Event Listeners
 modeToggle.addEventListener('click', () => {
     currentMode = currentMode === PasswordMode.SIMPLE ? PasswordMode.STRONG : PasswordMode.SIMPLE;
-    modeToggle.textContent = currentMode === PasswordMode.SIMPLE ? 'Einfacher Modus' : 'Sicherer Modus';
+    updateModeDisplay();
     updatePassword();
 });
 
@@ -84,19 +96,22 @@ regenerateBtn.addEventListener('click', updatePassword);
 
 lightDictBtn.addEventListener('click', () => {
     loadDictionary(DICT_URLS.light);
-    [lightDictBtn, filteredDictBtn, fullDictBtn].forEach(btn => btn.classList.remove('active'));
+    [lightDictBtn, filteredDictBtn].forEach(btn => btn.classList.remove('active'));
     lightDictBtn.classList.add('active');
+    updateDictDisplay('light');
 });
 
 filteredDictBtn.addEventListener('click', () => {
     loadDictionary(DICT_URLS.filtered);
-    [lightDictBtn, filteredDictBtn, fullDictBtn].forEach(btn => btn.classList.remove('active'));
+    [lightDictBtn, filteredDictBtn].forEach(btn => btn.classList.remove('active'));
     filteredDictBtn.classList.add('active');
+    updateDictDisplay('filtered');
 });
-
 
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
-    loadDictionary(DICT_URLS.filtered); // Start with filtered dictionary
-    filteredDictBtn.classList.add('active');
+    loadDictionary(DICT_URLS.light); // Start with light dictionary
+    lightDictBtn.classList.add('active');
+    updateModeDisplay();
+    updateDictDisplay('light');
 });
