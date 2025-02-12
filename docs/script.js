@@ -261,7 +261,7 @@
   var PasswordGenerator = class {
     constructor(dict) {
       this.SPECIAL_CHARS = ["$", "!", "+"];
-      this.FILTERED_CHARS = /* @__PURE__ */ new Set(["\xC4", "\xD6", "\xDC", "\u1E9E", "y", "z"]);
+      this.FILTERED_CHARS = /* @__PURE__ */ new Set(["\xC4", "\xE4", "\xD6", "\xF6", "\xDC", "\xFC", "\u1E9E", "\xDF", "Y", "y", "Z", "z"]);
       this.dict = dict;
     }
     getRandomItem(arr) {
@@ -300,12 +300,19 @@
       });
     }
     replaceSpecialChar(word) {
+      const charMap = {
+        "S": "$",
+        "s": "$",
+        "I": "!",
+        "i": "!",
+        "T": "+",
+        "t": "+"
+      };
       const matches = word.match(/[SsIiTt]/g);
       if (!matches)
         return word;
       const charToReplace = this.getRandomItem(matches);
-      const specialChar = this.getRandomItem(this.SPECIAL_CHARS);
-      return word.replace(charToReplace, specialChar);
+      return word.replace(charToReplace, charMap[charToReplace]);
     }
     generatePassword(mode) {
       return __awaiter2(this, void 0, void 0, function* () {
