@@ -3,9 +3,8 @@ import { PasswordGenerator, PasswordMode } from 'ger-morph-pw-gen/PasswordGenera
 
 // Dictionary URLs
 const DICT_URLS = {
-    light: 'https://github.com/KGT1/german-morph-filter/releases/download/v2025-01-23/whitelist_dict.txt',
-    filtered: 'https://github.com/KGT1/german-morph-filter/releases/download/v2025-01-23/DE_morph_dict_filtered.txt',
-    full: 'https://github.com/KGT1/german-morph-filter/releases/download/v2025-01-23/DE_morph_dict.txt'
+    light: 'https://raw.githubusercontent.com/KGT1/german-morph-filter/refs/heads/master/data/output/whitelist_dict.txt',
+    filtered: 'https://raw.githubusercontent.com/KGT1/german-morph-filter/refs/heads/master/data/output/DE_morph_dict_filtered.txt'
 };
 
 // UI Elements
@@ -95,11 +94,6 @@ filteredDictBtn.addEventListener('click', () => {
     filteredDictBtn.classList.add('active');
 });
 
-fullDictBtn.addEventListener('click', () => {
-    loadDictionary(DICT_URLS.full);
-    [lightDictBtn, filteredDictBtn, fullDictBtn].forEach(btn => btn.classList.remove('active'));
-    fullDictBtn.classList.add('active');
-});
 
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
