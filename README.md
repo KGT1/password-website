@@ -23,4 +23,4 @@ Eine einfache Webseite, die sichere Passwörter generiert, indem sie deutsche Ad
 
 ## Live Demo
 
-Die Webseite ist verfügbar unter: [https://kgt1.github.io/german-password-generator/](https://kgt1.github.io/german-password-generator/)
+Die Webseite ist verfügbar unter: [https://kgt1.github.io/password-website/](https://kgt1.github.io/password-website/)
