@@ -4,8 +4,8 @@
   "description": "German password generator for kids",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/script.ts --bundle --outfile=dist/script.js --sourcemap",
-    "watch": "esbuild src/script.ts --bundle --outfile=dist/script.js --sourcemap --watch",
+    "build": "esbuild src/script.ts --bundle --outfile=docs/script.js --sourcemap",
+    "watch": "esbuild src/script.ts --bundle --outfile=docs/script.js --sourcemap --watch",
     "start": "lite-server",
     "dev": "concurrently \"npm run watch\" \"npm run start\""
   },
