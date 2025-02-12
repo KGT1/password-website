@@ -275,16 +275,16 @@
         const nouns = yield this.dict.filterWords(void 0, [WordCategory.NOUN]);
         const nomSingNouns = nouns.filter((entry) => entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing"));
         const adjectives = yield this.dict.filterWords(void 0, [WordCategory.ADJECTIVE]);
-        const baseFilteredAdj = adjectives.filter((entry) => entry.analysis.attributes.includes("pos") && entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing") && entry.analysis.attributes.includes("strong"));
+        const baseFilteredAdj = adjectives.filter((entry) => entry.analysis.attributes.includes("pos") && entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing"));
         const nounsByGender = {
           masc: nomSingNouns.filter((n) => n.analysis.attributes.includes("masc")),
           fem: nomSingNouns.filter((n) => n.analysis.attributes.includes("fem")),
           neut: nomSingNouns.filter((n) => n.analysis.attributes.includes("neut"))
         };
         const adjByGender = {
-          masc: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("masc")),
+          masc: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("masc") && a.analysis.attributes.includes("strong")),
           fem: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("fem")),
-          neut: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("neut"))
+          neut: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("neut") && a.analysis.attributes.includes("strong"))
         };
         return { adjByGender, nounsByGender };
       });
@@ -352,9 +352,8 @@
 
   // src/script.ts
   var DICT_URLS = {
-    light: "https://github.com/KGT1/german-morph-filter/releases/download/v2025-01-23/whitelist_dict.txt",
-    filtered: "https://github.com/KGT1/german-morph-filter/releases/download/v2025-01-23/DE_morph_dict_filtered.txt",
-    full: "https://github.com/KGT1/german-morph-filter/releases/download/v2025-01-23/DE_morph_dict.txt"
+    light: "https://raw.githubusercontent.com/KGT1/german-morph-filter/refs/heads/master/data/output/whitelist_dict.txt",
+    filtered: "https://raw.githubusercontent.com/KGT1/german-morph-filter/refs/heads/master/data/output/DE_morph_dict_filtered.txt"
   };
   var passwordDisplay = document.getElementById("password");
   var modeToggle = document.getElementById("modeToggle");
@@ -424,11 +423,6 @@
     loadDictionary(DICT_URLS.filtered);
     [lightDictBtn, filteredDictBtn, fullDictBtn].forEach((btn) => btn.classList.remove("active"));
     filteredDictBtn.classList.add("active");
-  });
-  fullDictBtn.addEventListener("click", () => {
-    loadDictionary(DICT_URLS.full);
-    [lightDictBtn, filteredDictBtn, fullDictBtn].forEach((btn) => btn.classList.remove("active"));
-    fullDictBtn.classList.add("active");
   });
   document.addEventListener("DOMContentLoaded", () => {
     loadDictionary(DICT_URLS.filtered);
