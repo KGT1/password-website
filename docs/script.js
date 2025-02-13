@@ -368,7 +368,6 @@
   var regenerateBtn = document.getElementById("regenerateBtn");
   var lightDictBtn = document.getElementById("lightDict");
   var filteredDictBtn = document.getElementById("filteredDict");
-  var fullDictBtn = document.getElementById("fullDict");
   var loadingElement = document.getElementById("loading");
   var progressElement = document.getElementById("progress");
   var errorElement = document.getElementById("error");

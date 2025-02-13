@@ -14,7 +14,6 @@ const modeToggle = document.getElementById('modeToggle') as HTMLButtonElement;
 const regenerateBtn = document.getElementById('regenerateBtn') as HTMLButtonElement;
 const lightDictBtn = document.getElementById('lightDict') as HTMLButtonElement;
 const filteredDictBtn = document.getElementById('filteredDict') as HTMLButtonElement;
-const fullDictBtn = document.getElementById('fullDict') as HTMLButtonElement;
 const loadingElement = document.getElementById('loading') as HTMLDivElement;
 const progressElement = document.getElementById('progress') as HTMLDivElement;
 const errorElement = document.getElementById('error') as HTMLDivElement;
