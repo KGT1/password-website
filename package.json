@@ -1,7 +1,7 @@
 {
   "name": "password-website",
   "version": "1.0.0",
-  "description": "German password generator for kids",
+  "description": "German password generator",
   "main": "index.js",
   "scripts": {
     "build": "esbuild src/script.ts --bundle --outfile=docs/script.js --sourcemap",
