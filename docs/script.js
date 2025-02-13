@@ -1,33 +1,6 @@
 "use strict";
 (() => {
   // node_modules/ger-morph-pw-gen/GermanMorphDict.js
-  var __awaiter = function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
   var WordCategory;
   (function(WordCategory2) {
     WordCategory2["VERB"] = "V";
@@ -59,36 +32,46 @@
   })(WordCategory || (WordCategory = {}));
   var GermanMorphDict = class {
     /**
-     * Returns a promise that resolves when the dictionary is fully loaded
+     * Creates a new German morphological dictionary instance
+     * @param dictData - Dictionary data as string or Response object
+     * @param progressCallback - Optional callback for loading progress updates
      */
-    waitForReady() {
-      return __awaiter(this, void 0, void 0, function* () {
-        yield this.initialized;
-      });
-    }
     constructor(dictData, progressCallback) {
       this.dictionary = /* @__PURE__ */ new Map();
       this.totalEntries = 0;
-      this.initialized = (() => __awaiter(this, void 0, void 0, function* () {
+      this.initialized = (async () => {
         if (dictData instanceof Response) {
-          yield this.loadDictFromResponse(dictData, progressCallback);
+          await this.loadDictFromResponse(dictData, progressCallback);
         } else {
           this.loadDict(dictData, progressCallback);
         }
-      }))();
+      })();
     }
-    loadDictFromResponse(response, progressCallback) {
-      return __awaiter(this, void 0, void 0, function* () {
-        if (!response.body) {
-          throw new Error("Response body is null");
-        }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let totalBytes = +(response.headers.get("content-length") || 0);
-        let loadedBytes = 0;
+    /**
+     * Waits for the dictionary to be fully loaded
+     * @returns Promise that resolves when dictionary is ready
+     */
+    async waitForReady() {
+      await this.initialized;
+    }
+    /**
+     * Loads dictionary data from a Response object (e.g., fetch response)
+     * @param response - Response object containing dictionary data
+     * @param progressCallback - Optional callback for loading progress updates
+     * @throws Error if response body is null or data is invalid
+     */
+    async loadDictFromResponse(response, progressCallback) {
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const totalBytes = Number(response.headers.get("content-length") || 0);
+      let loadedBytes = 0;
+      try {
         while (true) {
-          const { done, value } = yield reader.read();
+          const { done, value } = await reader.read();
           if (done) {
             this.processChunk(buffer, true);
             break;
@@ -104,7 +87,6 @@
           if (progressCallback && totalBytes > 0) {
             progressCallback({
               totalLines: totalBytes,
-              // Using bytes as proxy for lines
               processedLines: loadedBytes,
               percentage: loadedBytes / totalBytes * 100
             });
@@ -117,18 +99,31 @@
             percentage: 100
           });
         }
-      });
+      } catch (error) {
+        throw new Error(`Failed to load dictionary: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
     }
+    /**
+     * Loads dictionary data from a string
+     * @param dictData - String containing dictionary data
+     * @param progressCallback - Optional callback for loading progress updates
+     */
     loadDict(dictData, progressCallback) {
       this.processChunk(dictData, true);
+      const totalLines = dictData.split("\n").length;
       if (progressCallback) {
         progressCallback({
-          totalLines: dictData.split("\n").length,
-          processedLines: dictData.split("\n").length,
+          totalLines,
+          processedLines: totalLines,
           percentage: 100
         });
       }
     }
+    /**
+     * Processes a chunk of dictionary data
+     * @param chunk - String chunk of dictionary data
+     * @param isLastChunk - Whether this is the final chunk
+     */
     processChunk(chunk, isLastChunk) {
       const lines = chunk.split("\n");
       let currentWord = null;
@@ -145,13 +140,22 @@
           const parts = trimmedLine.split(" ");
           if (parts.length < 2)
             continue;
-          const analysisParts = parts[1].split(",");
+          const lemma = parts[0];
+          if (!lemma)
+            continue;
+          const analysis = parts[1];
+          if (!analysis)
+            continue;
+          const analysisParts = analysis.split(",");
+          if (!analysisParts.length)
+            continue;
           const category = analysisParts[0];
-          const attributes = analysisParts.slice(1);
+          if (!Object.values(WordCategory).includes(category))
+            continue;
           currentAnalyses.push({
-            lemma: parts[0],
+            lemma,
             category,
-            attributes
+            attributes: analysisParts.slice(1)
           });
         }
       }
@@ -159,6 +163,11 @@
         this.addCurrentWordToDictionary(currentWord, currentAnalyses);
       }
     }
+    /**
+     * Adds a word and its analyses to the dictionary
+     * @param currentWord - Word to add
+     * @param currentAnalyses - Array of morphological analyses for the word
+     */
     addCurrentWordToDictionary(currentWord, currentAnalyses) {
       if (currentWord && currentAnalyses.length > 0) {
         const entries = currentAnalyses.map((analysis) => ({
@@ -169,8 +178,13 @@
         this.totalEntries += entries.length;
       }
     }
+    /**
+     * Generator function that yields filtered word entries
+     * @param regex - Optional regex pattern to filter words
+     * @param categories - Optional array of word categories to filter by
+     * @yields WordEntry objects matching the filter criteria
+     */
     *filterWordsGenerator(regex, categories) {
-      let processedWords = 0;
       for (const [word, entries] of this.dictionary) {
         if (regex && !regex.test(word))
           continue;
@@ -181,179 +195,234 @@
         }
       }
     }
-    filterWords(regex, categories, progressCallback) {
-      return __awaiter(this, void 0, void 0, function* () {
-        yield this.initialized;
-        const result = [];
-        const generator = this.filterWordsGenerator(regex, categories);
-        let processedEntries = 0;
-        for (const entry of generator) {
-          result.push(entry);
-          processedEntries++;
-          if (progressCallback && processedEntries % 1e3 === 0) {
-            progressCallback({
-              processedEntries,
-              totalEntries: this.totalEntries,
-              percentage: processedEntries / this.totalEntries * 100
-            });
-          }
-        }
-        if (progressCallback) {
+    /**
+     * Filters dictionary entries based on regex pattern and/or word categories
+     * @param regex - Optional regex pattern to filter words
+     * @param categories - Optional array of word categories to filter by
+     * @param progressCallback - Optional callback for filtering progress updates
+     * @returns Promise resolving to array of filtered word entries
+     */
+    async filterWords(regex, categories, progressCallback) {
+      await this.initialized;
+      const result = [];
+      const generator = this.filterWordsGenerator(regex, categories);
+      let processedEntries = 0;
+      for (const entry of generator) {
+        result.push(entry);
+        processedEntries++;
+        if (progressCallback && processedEntries % 1e3 === 0) {
           progressCallback({
-            processedEntries: this.totalEntries,
+            processedEntries,
             totalEntries: this.totalEntries,
-            percentage: 100
+            percentage: processedEntries / this.totalEntries * 100
           });
         }
-        return result;
-      });
+      }
+      if (progressCallback) {
+        progressCallback({
+          processedEntries: this.totalEntries,
+          totalEntries: this.totalEntries,
+          percentage: 100
+        });
+      }
+      return result;
     }
-    combineFilters(regex, categories, progressCallback) {
-      return __awaiter(this, void 0, void 0, function* () {
-        return yield this.filterWords(regex, categories, progressCallback);
-      });
+    /**
+     * Alias for filterWords method
+     * @deprecated Use filterWords instead
+     */
+    async combineFilters(regex, categories, progressCallback) {
+      return this.filterWords(regex, categories, progressCallback);
     }
-    getDictionary() {
-      return __awaiter(this, void 0, void 0, function* () {
-        yield this.initialized;
-        const result = [];
-        for (const entries of this.dictionary.values()) {
-          result.push(...entries);
-        }
-        return result;
-      });
+    /**
+     * Gets all entries in the dictionary
+     * @returns Promise resolving to array of all word entries
+     */
+    async getDictionary() {
+      await this.initialized;
+      const result = [];
+      for (const entries of this.dictionary.values()) {
+        result.push(...entries);
+      }
+      return result;
     }
   };
 
   // node_modules/ger-morph-pw-gen/PasswordGenerator.js
-  var __awaiter2 = function(thisArg, _arguments, P, generator) {
-    function adopt(value) {
-      return value instanceof P ? value : new P(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P || (P = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
   var PasswordMode;
   (function(PasswordMode2) {
     PasswordMode2["SIMPLE"] = "simple";
     PasswordMode2["STRONG"] = "strong";
   })(PasswordMode || (PasswordMode = {}));
+  var SPECIAL_CHAR_MAP = {
+    "S": "$",
+    "s": "$",
+    "I": "!",
+    "i": "!",
+    "T": "+",
+    "t": "+"
+  };
+  var STRONG_MODE_FILTERED_CHARS = /* @__PURE__ */ new Set([
+    "\xC4",
+    "\xE4",
+    "\xD6",
+    "\xF6",
+    "\xDC",
+    "\xFC",
+    "\u1E9E",
+    "\xDF",
+    "Y",
+    "y",
+    "Z",
+    "z"
+  ]);
   var PasswordGenerator = class {
+    /**
+     * Creates a new password generator instance
+     * @param dict - German morphological dictionary instance
+     */
     constructor(dict) {
-      this.SPECIAL_CHARS = ["$", "!", "+"];
-      this.FILTERED_CHARS = /* @__PURE__ */ new Set(["\xC4", "\xE4", "\xD6", "\xF6", "\xDC", "\xFC", "\u1E9E", "\xDF", "Y", "y", "Z", "z"]);
       this.dict = dict;
     }
+    /**
+     * Gets a random item from an array
+     * @param arr - Array to select from
+     * @returns Random item from the array
+     * @throws Error if array is empty
+     */
     getRandomItem(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
+      if (!arr.length) {
+        throw new Error("Cannot get random item from empty array");
+      }
+      const index = Math.floor(Math.random() * arr.length);
+      return arr[index];
     }
+    /**
+     * Generates a string of random digits
+     * @param length - Number of digits to generate
+     * @returns String of random digits
+     */
     getRandomDigits(length) {
       return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
     }
-    getFilteredWords() {
-      return __awaiter2(this, void 0, void 0, function* () {
-        const nouns = yield this.dict.filterWords(void 0, [WordCategory.NOUN]);
-        const nomSingNouns = nouns.filter((entry) => entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing"));
-        const adjectives = yield this.dict.filterWords(void 0, [WordCategory.ADJECTIVE]);
-        const baseFilteredAdj = adjectives.filter((entry) => entry.analysis.attributes.includes("pos") && entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing"));
-        const nounsByGender = {
-          masc: nomSingNouns.filter((n) => n.analysis.attributes.includes("masc")),
-          fem: nomSingNouns.filter((n) => n.analysis.attributes.includes("fem")),
-          neut: nomSingNouns.filter((n) => n.analysis.attributes.includes("neut"))
-        };
-        const adjByGender = {
-          masc: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("masc") && a.analysis.attributes.includes("strong")),
-          fem: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("fem")),
-          neut: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("neut") && a.analysis.attributes.includes("strong"))
-        };
-        return { adjByGender, nounsByGender };
-      });
+    /**
+     * Retrieves and filters words from the dictionary based on grammatical criteria
+     * @returns Promise resolving to filtered adjectives and nouns grouped by gender
+     */
+    async getFilteredWords() {
+      const nouns = await this.dict.filterWords(void 0, [WordCategory.NOUN]);
+      const nomSingNouns = nouns.filter((entry) => entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing"));
+      const adjectives = await this.dict.filterWords(void 0, [WordCategory.ADJECTIVE]);
+      const baseFilteredAdj = adjectives.filter((entry) => entry.analysis.attributes.includes("pos") && entry.analysis.attributes.includes("nom") && entry.analysis.attributes.includes("sing"));
+      const nounsByGender = {
+        masc: nomSingNouns.filter((n) => n.analysis.attributes.includes("masc")),
+        fem: nomSingNouns.filter((n) => n.analysis.attributes.includes("fem")),
+        neut: nomSingNouns.filter((n) => n.analysis.attributes.includes("neut"))
+      };
+      const adjByGender = {
+        masc: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("masc") && a.analysis.attributes.includes("strong")),
+        fem: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("fem")),
+        neut: baseFilteredAdj.filter((a) => a.analysis.attributes.includes("neut") && a.analysis.attributes.includes("strong"))
+      };
+      return { adjByGender, nounsByGender };
     }
+    /**
+     * Filters words to ensure they meet strong password criteria
+     * @param words - Array of word entries to filter
+     * @returns Filtered array of word entries suitable for strong passwords
+     */
     filterStrongWords(words) {
       return words.filter((entry) => {
         const word = entry.word;
-        for (const char of this.FILTERED_CHARS) {
-          if (word.includes(char))
-            return false;
+        if ([...STRONG_MODE_FILTERED_CHARS].some((char) => word.includes(char))) {
+          return false;
         }
-        return /[SsIiTt]/.test(word);
+        return Object.keys(SPECIAL_CHAR_MAP).some((char) => word.includes(char));
       });
     }
+    /**
+     * Gets filtered words based on the password mode
+     * @param words - Array of word entries to filter
+     * @param mode - Password generation mode
+     * @returns Filtered array of word entries
+     */
+    getWordsByMode(words, mode) {
+      if (mode === PasswordMode.STRONG) {
+        return this.filterStrongWords(words);
+      }
+      return [...words];
+    }
+    /**
+     * Replaces a random eligible character with its special character equivalent
+     * @param word - Word to process
+     * @returns Word with one special character substitution
+     */
     replaceSpecialChar(word) {
-      const charMap = {
-        "S": "$",
-        "s": "$",
-        "I": "!",
-        "i": "!",
-        "T": "+",
-        "t": "+"
-      };
-      const matches = word.match(/[SsIiTt]/g);
-      if (!matches)
+      const eligibleChars = word.match(/[SsIiTt]/g);
+      if (!eligibleChars)
         return word;
-      const charToReplace = this.getRandomItem(matches);
-      return word.replace(charToReplace, charMap[charToReplace]);
+      const charToReplace = this.getRandomItem(eligibleChars);
+      const replacement = SPECIAL_CHAR_MAP[charToReplace];
+      if (!replacement)
+        return word;
+      return word.replace(charToReplace, replacement);
     }
-    generatePassword(mode) {
-      return __awaiter2(this, void 0, void 0, function* () {
-        const { adjByGender, nounsByGender } = yield this.getFilteredWords();
-        const gender = this.getRandomItem(["masc", "fem", "neut"]);
-        let adjectives = adjByGender[gender];
-        let nouns = nounsByGender[gender];
-        if (mode === PasswordMode.STRONG) {
-          adjectives = this.filterStrongWords(adjectives);
-          nouns = this.filterStrongWords(nouns);
-        }
-        if (!(adjectives === null || adjectives === void 0 ? void 0 : adjectives.length) || !(nouns === null || nouns === void 0 ? void 0 : nouns.length)) {
-          throw new Error(`No valid words found for gender: ${gender}`);
-        }
-        const adj = this.getRandomItem(adjectives);
-        const noun = this.getRandomItem(nouns);
-        let password = adj.word + noun.word;
-        if (mode === PasswordMode.STRONG) {
-          password = this.replaceSpecialChar(password);
-          password += this.getRandomDigits(2);
-        }
-        return password;
-      });
+    /**
+     * Generates a single password
+     * @param mode - Password generation mode
+     * @returns Promise resolving to generated password
+     * @throws Error if no valid words are found or if word filtering fails
+     */
+    async generatePassword(mode) {
+      const { adjByGender, nounsByGender } = await this.getFilteredWords();
+      const gender = this.getRandomItem(["masc", "fem", "neut"]);
+      let adjectives = adjByGender[gender];
+      let nouns = nounsByGender[gender];
+      if (!adjectives?.length || !nouns?.length) {
+        throw new Error(`No valid words found for gender: ${gender}`);
+      }
+      adjectives = this.getWordsByMode(adjectives, mode);
+      nouns = this.getWordsByMode(nouns, mode);
+      if (!adjectives.length || !nouns.length) {
+        throw new Error(`No valid words found for gender: ${gender} in ${mode} mode`);
+      }
+      const adj = this.getRandomItem(adjectives);
+      const noun = this.getRandomItem(nouns);
+      let password = adj.word + noun.word;
+      if (mode === PasswordMode.STRONG) {
+        password = this.replaceSpecialChar(password);
+        password += this.getRandomDigits(2);
+      }
+      return password;
     }
-    generatePasswords(mode_1) {
-      return __awaiter2(this, arguments, void 0, function* (mode, count = 10) {
-        const passwords = [];
-        const usedCombos = /* @__PURE__ */ new Set();
-        for (let i = 0; i < count * 3 && passwords.length < count; i++) {
-          try {
-            const password = yield this.generatePassword(mode);
-            if (!usedCombos.has(password)) {
-              usedCombos.add(password);
-              passwords.push(password);
-            }
-          } catch (error) {
-            console.error("Error generating password:", error);
+    /**
+     * Generates multiple unique passwords
+     * @param mode - Password generation mode
+     * @param count - Number of passwords to generate (default: 10)
+     * @returns Promise resolving to array of unique passwords
+     */
+    async generatePasswords(mode, count = 10) {
+      if (count < 1) {
+        throw new Error("Password count must be greater than 0");
+      }
+      const passwords = [];
+      const usedCombos = /* @__PURE__ */ new Set();
+      const maxAttempts = count * 3;
+      for (let attempts = 0; attempts < maxAttempts && passwords.length < count; attempts++) {
+        try {
+          const password = await this.generatePassword(mode);
+          if (!usedCombos.has(password)) {
+            usedCombos.add(password);
+            passwords.push(password);
           }
+        } catch (error) {
+          console.error("Error generating password:", error instanceof Error ? error.message : "Unknown error");
         }
-        return passwords;
-      });
+      }
+      if (!passwords.length) {
+        throw new Error("Failed to generate any valid passwords");
+      }
+      return passwords;
     }
   };
 
