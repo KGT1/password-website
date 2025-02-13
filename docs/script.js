@@ -362,6 +362,7 @@
     light: "https://raw.githubusercontent.com/KGT1/german-morph-filter/refs/heads/master/data/output/whitelist_dict.txt",
     filtered: "https://raw.githubusercontent.com/KGT1/german-morph-filter/refs/heads/master/data/output/DE_morph_dict_filtered.txt"
   };
+  var themeToggle = document.getElementById("themeToggle");
   var passwordDisplay = document.getElementById("password");
   var modeToggle = document.getElementById("modeToggle");
   var regenerateBtn = document.getElementById("regenerateBtn");
@@ -373,6 +374,24 @@
   var errorElement = document.getElementById("error");
   var currentMode = PasswordMode.STRONG;
   var currentGenerator = null;
+  var isDarkMode = localStorage.getItem("theme") === "dark" || localStorage.getItem("theme") === null && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    document.documentElement.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    themeToggle.innerHTML = isDarkMode ? "\u2600\uFE0F Tagmodus" : "\u{1F319} Nachtmodus";
+  }
+  function initializeTheme() {
+    document.documentElement.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+    themeToggle.innerHTML = isDarkMode ? "\u2600\uFE0F Tagmodus" : "\u{1F319} Nachtmodus";
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+      if (localStorage.getItem("theme") === null) {
+        isDarkMode = e.matches;
+        document.documentElement.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+        themeToggle.innerHTML = isDarkMode ? "\u2600\uFE0F Tagmodus" : "\u{1F319} Nachtmodus";
+      }
+    });
+  }
   function updateModeDisplay() {
     const currentModeDisplay = document.getElementById("currentMode");
     currentModeDisplay.textContent = `(Aktuell: ${currentMode === PasswordMode.SIMPLE ? "Einfacher Modus" : "Sicherer Modus"})`;
@@ -447,6 +466,8 @@
     lightDictBtn.classList.add("active");
     updateModeDisplay();
     updateDictDisplay("light");
+    initializeTheme();
   });
+  themeToggle.addEventListener("click", toggleTheme);
 })();
 //# sourceMappingURL=script.js.map

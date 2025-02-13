@@ -8,6 +8,7 @@ const DICT_URLS = {
 };
 
 // UI Elements
+const themeToggle = document.getElementById('themeToggle') as HTMLButtonElement;
 const passwordDisplay = document.getElementById('password') as HTMLDivElement;
 const modeToggle = document.getElementById('modeToggle') as HTMLButtonElement;
 const regenerateBtn = document.getElementById('regenerateBtn') as HTMLButtonElement;
@@ -21,6 +22,32 @@ const errorElement = document.getElementById('error') as HTMLDivElement;
 // State
 let currentMode = PasswordMode.STRONG;
 let currentGenerator: PasswordGenerator | null = null;
+// Theme state management
+let isDarkMode = localStorage.getItem('theme') === 'dark' || 
+    (localStorage.getItem('theme') === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+// Theme Functions
+function toggleTheme(): void {
+    isDarkMode = !isDarkMode;
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    themeToggle.innerHTML = isDarkMode ? '☀️ Tagmodus' : '🌙 Nachtmodus';
+}
+
+// Initialize theme
+function initializeTheme(): void {
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    themeToggle.innerHTML = isDarkMode ? '☀️ Tagmodus' : '🌙 Nachtmodus';
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (localStorage.getItem('theme') === null) {  // Only auto-switch if user hasn't manually set a preference
+            isDarkMode = e.matches;
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+            themeToggle.innerHTML = isDarkMode ? '☀️ Tagmodus' : '🌙 Nachtmodus';
+        }
+    });
+}
 
 // UI Update Functions
 function updateModeDisplay(): void {
@@ -114,4 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
     lightDictBtn.classList.add('active');
     updateModeDisplay();
     updateDictDisplay('light');
+    initializeTheme();
 });
+
+// Theme toggle event listener
+themeToggle.addEventListener('click', toggleTheme);
