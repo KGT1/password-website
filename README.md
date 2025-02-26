@@ -1,10 +1,10 @@
-# Deutscher Passwort-Generator für Kinder
+# Deutscher Passwort-Generator
 
 Eine einfache Webseite, die sichere Passwörter generiert, indem sie deutsche Adjektive und Nomen kombiniert.
 
 ## Features
 
-- Generiert kindgerechte Passwörter in deutscher Sprache
+- Generiert Passwörter in deutscher Sprache
 - Drei verschiedene Wörterbuch-Optionen:
   - Leicht: Reduzierter Wortschatz (mit Warnung wegen geringerer Entropie)
   - Normal: Gefilterter Wortschatz für alltägliche Begriffe
