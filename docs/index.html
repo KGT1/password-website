@@ -2,56 +2,145 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+    <meta name="referrer" content="no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Zufällige deutsche Sätze als Passwort: leicht zu merken, schwer zu erraten. Mit ehrlicher Stärkeanzeige. Läuft komplett im Browser.">
+    <meta name="color-scheme" content="light dark">
     <title>Deutscher Passwort-Generator</title>
     <link rel="icon" href="lock.ico" type="image/x-icon">
     <link rel="stylesheet" href="style.css">
+    <script type="module" src="script.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <div class="page">
+        <header class="masthead">
             <h1>Deutscher Passwort-Generator</h1>
-            <button id="themeToggle" class="theme-btn">🌙 Nachtmodus</button>
-        </div>
-        
-        <div class="password-display">
-            <h2>Dein Passwort:</h2>
-            <div id="password" class="password"></div>
-        </div>
+            <button id="themeToggle" class="theme-btn" type="button" aria-pressed="false">Nachtmodus</button>
+        </header>
+        <p class="intro">Ein zufälliger deutscher Satz als Passwort: leicht zu merken, schwer zu erraten.
+            Alles entsteht in deinem Browser, nichts wird gesendet oder gespeichert.</p>
 
-        <div class="controls">
-            <div class="mode-control">
-                <div class="mode-header">
-                    <h3>Sicherheitsmodus: <span id="currentMode" class="current-mode">(Aktuell: Sicherer Modus)</span></h3>
+        <noscript>
+            <p class="noscript">Diese Seite braucht JavaScript, um das Passwort in deinem Browser zu erzeugen.</p>
+        </noscript>
+
+        <main>
+            <section class="sheet" aria-labelledby="passwordHeading">
+                <h2 id="passwordHeading" class="visually-hidden">Dein Passwort</h2>
+                <p id="password" class="password" aria-live="polite" aria-atomic="true"></p>
+                <ul id="legend" class="legend" aria-label="Satzteile im Passwort"></ul>
+                <p class="merksatz-line"><span class="merksatz-label">Merksatz</span>
+                    <span id="merksatz" class="merksatz"></span></p>
+                <div class="actions">
+                    <button id="copyBtn" class="btn btn-primary" type="button">Kopieren</button>
+                    <button id="regenerateBtn" class="btn btn-secondary" type="button">Neu generieren</button>
+                    <span id="copyStatus" class="copy-status" role="status"></span>
                 </div>
-                <button id="modeToggle">Sicherer Modus</button>
-                <button id="regenerateBtn" class="regenerate-btn">Neu generieren 🔄</button>
-            </div>
+                <p class="layout-note">Tippt sich gleich auf deutscher und englischer Tastatur:
+                    keine Umlaute, kein ß, kein y oder z, nur Satzzeichen, die auf beiden an derselben Stelle liegen.</p>
+            </section>
 
-            <div class="dictionary-control">
-                <h3>Wörterbuch auswählen: <span id="currentDict" class="current-mode">(Aktuell: Leicht)</span></h3>
-                <div class="dictionary-buttons">
-                    <button id="lightDict" class="dict-button">
-                        Leicht
-                        <div class="dict-description">Nur mit kindgerechten Wörtern</div>
-                    </button>
-                    <button id="filteredDict" class="dict-button">
-                        Normal
-                        <div class="dict-description">Gefilterte Wörter (könnte nicht jugendfreie Wörter enthalten)</div>
-                    </button>
-                </div>
-            </div>
-        </div>
+            <div class="columns">
+                <section class="strength" aria-labelledby="strengthHeading">
+                    <h2 id="strengthHeading">Wie stark ist dieses Passwort?</h2>
+                    <p class="score"><span id="bits" class="bits"></span> <span id="band" class="band"></span></p>
+                    <div id="ruler" class="ruler" role="meter" aria-valuemin="0" aria-valuemax="100" aria-labelledby="strengthHeading">
+                        <div class="ruler-bands" aria-hidden="true">
+                            <span class="ruler-band" data-band="weak">Schwach</span>
+                            <span class="ruler-band" data-band="medium">Mittel</span>
+                            <span class="ruler-band" data-band="strong">Stark</span>
+                            <span class="ruler-band" data-band="veryStrong">Sehr stark</span>
+                        </div>
+                        <div class="ruler-scale" aria-hidden="true">
+                            <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100 Bit</span>
+                        </div>
+                        <span id="rulerMarker" class="ruler-marker" aria-hidden="true"></span>
+                    </div>
+                    <p class="combinations">Mögliche Passwörter: <strong id="combinations"></strong></p>
 
-        <div id="loading" class="loading hidden">
-            Lade Wörterbuch...
-            <div class="progress-bar">
-                <div id="progress" class="progress"></div>
-            </div>
-        </div>
+                    <table class="crack-table">
+                        <caption>Durchschnittliche Zeit, bis ein Angreifer das Passwort errät</caption>
+                        <tbody id="crackTimes"></tbody>
+                    </table>
+                    <p class="caveat">Gilt nur, wenn du das Passwort unverändert übernimmst.</p>
 
-        <div id="error" class="error hidden"></div>
+                    <details class="explain">
+                        <summary>Wie wird das berechnet?</summary>
+                        <table class="slot-table">
+                            <thead>
+                                <tr><th scope="col">Satzteil</th><th scope="col">Möglichkeiten</th><th scope="col">Bit</th></tr>
+                            </thead>
+                            <tbody id="slotRows"></tbody>
+                            <tfoot>
+                                <tr><th scope="row">Zusammen</th><td id="slotProduct"></td><td id="slotBits"></td></tr>
+                            </tfoot>
+                        </table>
+                        <p id="formula" class="formula"></p>
+                        <p>Die Bit-Zahl ist der Zweierlogarithmus der Anzahl möglicher Passwörter.
+                            Jedes zusätzliche Bit verdoppelt die Arbeit für einen Angreifer.</p>
+                        <p>Dabei nehmen wir an, dass der Angreifer das Verfahren und die Wortlisten genau kennt.
+                            Die Stärke kommt allein aus dem Zufall: Jeder Satzteil wird unabhängig und gleich
+                            wahrscheinlich mit dem Zufallsgenerator deines Browsers gewählt.</p>
+                        <p>Trennzeichen, das Satzzeichen am Ende und die Groß- und Kleinschreibung folgen festen Regeln.
+                            Sie machen das Passwort nicht stärker und zählen deshalb nicht mit.</p>
+                        <p>Im Durchschnitt muss ein Angreifer die Hälfte aller Möglichkeiten durchprobieren.
+                            Die Geschwindigkeiten sind grobe Größenordnungen: Wie schnell ein Angreifer raten kann,
+                            hängt vor allem davon ab, wie gut ein Dienst die Passwörter speichert.
+                            Jede zusätzliche Ziffer bringt 3,3 Bit.</p>
+                    </details>
+                </section>
+
+                <section class="options" aria-labelledby="optionsHeading">
+                    <h2 id="optionsHeading">Einstellungen</h2>
+                    <form id="options" class="options-form">
+                        <fieldset>
+                            <legend>Wortliste</legend>
+                            <div class="choices">
+                                <label class="choice"><input type="radio" name="wordlist" value="main"><span>Standard</span></label>
+                                <label class="choice"><input type="radio" name="wordlist" value="kids"><span>Kinder</span></label>
+                            </div>
+                            <p id="wordlistNote" class="note"></p>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend>Länge</legend>
+                            <div class="choices">
+                                <label class="choice"><input type="radio" name="length" value="normal"><span>Normal, mit Adverb</span></label>
+                                <label class="choice"><input type="radio" name="length" value="short"><span>Kürzer</span></label>
+                            </div>
+                            <p id="lengthNote" class="note"></p>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend>Ziffern</legend>
+                            <div id="digitChoices" class="choices choices-tight"></div>
+                            <p class="note">Jede Ziffer bringt 3,3 Bit.</p>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend>Trennzeichen</legend>
+                            <div id="separatorChoices" class="choices choices-tight"></div>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend>Satzzeichen am Ende</legend>
+                            <div id="symbolChoices" class="choices choices-tight"></div>
+                        </fieldset>
+
+                        <button id="resetBtn" class="btn btn-quiet" type="button">Auf Standard zurücksetzen</button>
+                    </form>
+                    <p class="note">Deine Einstellungen werden in diesem Browser gespeichert, Passwörter nie.</p>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Wortlisten: <span id="attribution"></span>
+                Lizenz: <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" rel="license noopener noreferrer">CC BY-SA 4.0</a>.</p>
+            <p>Erzeugt mit <a href="https://github.com/KGT1/ger-morph-pw-gen" rel="noopener noreferrer">ger-morph-pw-gen</a>.
+                Quellcode: <a href="https://github.com/KGT1/password-website" rel="noopener noreferrer">KGT1/password-website</a> (MIT).</p>
+        </footer>
     </div>
-    <script type="module" src="script.js"></script>
 </body>
 </html>

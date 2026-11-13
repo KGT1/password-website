@@ -1,17 +1,20 @@
 {
   "name": "password-website",
   "version": "1.0.0",
-  "description": "German password generator",
+  "description": "German sentence passphrase generator website",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/script.ts --bundle --outfile=docs/script.js --sourcemap",
-    "watch": "esbuild src/script.ts --bundle --outfile=docs/script.js --sourcemap --watch",
+    "build": "esbuild src/script.ts --bundle --minify --target=es2020 --outfile=docs/script.js",
+    "watch": "esbuild src/script.ts --bundle --sourcemap --target=es2020 --outfile=docs/script.js --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild tests/*.test.ts --bundle --platform=node --format=esm --target=node20 --outdir=dist/tests --out-extension:.js=.mjs && node --test dist/tests/",
+    "sync-wordlists": "node scripts/sync-wordlists.mjs",
     "start": "lite-server",
     "dev": "concurrently \"npm run watch\" \"npm run start\""
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "devDependencies": {
     "@types/node": "^20.11.17",
@@ -21,6 +24,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "ger-morph-pw-gen": "github:KGT1/ger-morph-pw-gen"
+    "ger-morph-pw-gen": "file:../ger-morph-pw-gen"
   }
 }
