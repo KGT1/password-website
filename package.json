@@ -4,10 +4,10 @@
   "description": "German sentence passphrase generator website",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/script.ts --bundle --minify --target=es2020 --outfile=docs/script.js",
-    "watch": "esbuild src/script.ts --bundle --sourcemap --target=es2020 --outfile=docs/script.js --watch",
+    "build": "esbuild src/script.ts --bundle --resolve-extensions=.js,.ts,.json --minify --target=es2020 --outfile=docs/script.js",
+    "watch": "esbuild src/script.ts --bundle --resolve-extensions=.js,.ts,.json --sourcemap --target=es2020 --outfile=docs/script.js --watch",
     "typecheck": "tsc --noEmit",
-    "test": "esbuild tests/*.test.ts --bundle --platform=node --format=esm --target=node20 --outdir=dist/tests --out-extension:.js=.mjs && node --test dist/tests/",
+    "test": "esbuild tests/*.test.ts --bundle --resolve-extensions=.js,.ts,.json --platform=node --format=esm --target=node20 --outdir=dist/tests --out-extension:.js=.mjs && node --test dist/tests/",
     "sync-wordlists": "node scripts/sync-wordlists.mjs",
     "start": "lite-server",
     "dev": "concurrently \"npm run watch\" \"npm run start\""
