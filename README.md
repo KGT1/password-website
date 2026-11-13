@@ -87,6 +87,15 @@ Der Code der Webseite steht unter der MIT-Lizenz, siehe [LICENSE](LICENSE).
 
 ## Entwicklung
 
+Die Bibliothek und die Wortlisten werden aus Nachbarordnern eingebunden, die
+drei Repositories müssen also nebeneinander liegen:
+
+```
+ger-morph-pw-gen/      # https://github.com/KGT1/ger-morph-pw-gen
+german-morph-filter/   # https://github.com/KGT1/german-morph-filter
+password-website/      # dieses Repository
+```
+
 ```bash
 npm install
 npm run build           # docs/script.js (esbuild, Wortlisten eingebettet)
