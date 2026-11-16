@@ -1,9 +1,9 @@
 /**
- * Pure helpers for the website: option handling, text segments for the
- * password and the Merksatz, and German number/duration formatting.
+ * Pure helpers for the website: option handling, the displayed password
+ * and Merksatz, the strength summary and German number/duration formatting.
  * No DOM access, so everything here can be tested in Node.
  */
-import type { SentenceParts, SentenceSlot, Separator, TrailingSymbol } from 'ger-morph-pw-gen/SentenceGenerator';
+import type { CrackTimeEstimate, SentenceParts, SentenceSlot, Separator, TrailingSymbol } from 'ger-morph-pw-gen/SentenceGenerator';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -77,34 +77,13 @@ export function parseStoredOptions(stored: string | null): SiteOptions {
 }
 
 // ---------------------------------------------------------------------------
-// Sentence parts → display segments
+// Sentence parts → display text
 
-/** Phrase a piece of text belongs to; used for colour coding */
-export type Phrase = 'subject' | 'verb' | 'adverb' | 'object' | 'digits';
-
-/** A piece of displayed text; phrase null for separators and symbols */
-export interface Segment {
-    readonly text: string;
-    readonly phrase: Phrase | null;
+/** Default options? Used to flag customised settings */
+export function isDefaultOptions(options: SiteOptions): boolean {
+    return (Object.keys(DEFAULT_OPTIONS) as (keyof SiteOptions)[])
+        .every(key => options[key] === DEFAULT_OPTIONS[key]);
 }
-
-export const PHRASE_LABELS: Readonly<Record<Phrase, string>> = {
-    subject: 'Subjekt',
-    verb: 'Verb',
-    adverb: 'Adverb',
-    object: 'Objekt',
-    digits: 'Zahl'
-};
-
-export const SLOT_PHRASE: Readonly<Record<SentenceSlot, Phrase>> = {
-    subjectAdjective: 'subject',
-    subjectNoun: 'subject',
-    verb: 'verb',
-    adverb: 'adverb',
-    objectAdjective: 'object',
-    objectNoun: 'object',
-    digits: 'digits'
-};
 
 export const SLOT_LABELS: Readonly<Record<SentenceSlot, string>> = {
     subjectAdjective: 'Adjektiv',
@@ -116,62 +95,44 @@ export const SLOT_LABELS: Readonly<Record<SentenceSlot, string>> = {
     digits: 'Ziffern'
 };
 
-/** The password split into phrases and separators; joined it equals the password */
-export function passwordSegments(parts: SentenceParts): Segment[] {
-    const phrases: Segment[] = [
-        { text: parts.subjectAdjective + parts.subjectNoun, phrase: 'subject' },
-        { text: parts.verb, phrase: 'verb' }
-    ];
-    if (parts.adverb !== null) {
-        phrases.push({ text: parts.adverb, phrase: 'adverb' });
-    }
-    phrases.push({ text: parts.objectAdjective + parts.objectNoun, phrase: 'object' });
-    if (parts.digits) {
-        phrases.push({ text: parts.digits, phrase: 'digits' });
-    }
+/** Which part of the sentence a slot belongs to, where the slot name alone is ambiguous */
+export const SLOT_HINTS: Readonly<Partial<Record<SentenceSlot, string>>> = {
+    subjectAdjective: 'Subjekt',
+    subjectNoun: 'Subjekt',
+    objectAdjective: 'Objekt',
+    objectNoun: 'Objekt'
+};
 
-    const segments: Segment[] = [];
-    phrases.forEach((segment, index) => {
-        if (index > 0) {
-            segments.push({ text: parts.separator, phrase: null });
-        }
-        segments.push(segment);
-    });
-    if (parts.trailingSymbol) {
-        segments.push({ text: parts.trailingSymbol, phrase: null });
+/**
+ * The password in chunks that each end with their separator (or the
+ * trailing symbol), e.g. ["flinkerFuchs.", "malt.", …, "42!"]. Joined they
+ * equal the password; the page allows line breaks between chunks only.
+ */
+export function passwordChunks(parts: SentenceParts): string[] {
+    const words = [parts.subjectAdjective + parts.subjectNoun, parts.verb];
+    if (parts.adverb !== null) {
+        words.push(parts.adverb);
     }
-    return segments;
+    words.push(parts.objectAdjective + parts.objectNoun);
+    if (parts.digits) {
+        words.push(parts.digits);
+    }
+    const last = words.length - 1;
+    return words.map((word, index) => word + (index < last ? parts.separator : parts.trailingSymbol));
 }
 
 /**
  * The natural sentence as a memory aid, e.g.
  * "Flinker Fuchs malt leise rote Tomate – 42!"
  */
-export function merksatzSegments(parts: SentenceParts): Segment[] {
-    const subject = capitalize(parts.subjectAdjective) + ' ' + parts.subjectNoun;
-    const phrases: Segment[] = [
-        { text: subject, phrase: 'subject' },
-        { text: parts.verb, phrase: 'verb' }
-    ];
+export function merksatz(parts: SentenceParts): string {
+    const words = [capitalize(parts.subjectAdjective), parts.subjectNoun, parts.verb];
     if (parts.adverb !== null) {
-        phrases.push({ text: parts.adverb, phrase: 'adverb' });
+        words.push(parts.adverb);
     }
-    phrases.push({ text: parts.objectAdjective + ' ' + parts.objectNoun, phrase: 'object' });
-
-    const segments: Segment[] = [];
-    phrases.forEach((segment, index) => {
-        if (index > 0) {
-            segments.push({ text: ' ', phrase: null });
-        }
-        segments.push(segment);
-    });
-    if (parts.digits) {
-        segments.push({ text: ' – ', phrase: null }, { text: parts.digits, phrase: 'digits' });
-    }
-    if (parts.trailingSymbol) {
-        segments.push({ text: parts.trailingSymbol, phrase: null });
-    }
-    return segments;
+    words.push(parts.objectAdjective, parts.objectNoun);
+    const digits = parts.digits ? ' – ' + parts.digits : '';
+    return words.join(' ') + digits + parts.trailingSymbol;
 }
 
 function capitalize(word: string): string {
@@ -202,6 +163,48 @@ export const ATTACKER_LABELS: Readonly<Record<string, string>> = {
     offlineFastHash: 'Datenleck, schwach geschützt (MD5, 1 Grafikkarte)',
     offlineFastHashCluster: 'Datenleck, schwach geschützt, 1000 Grafikkarten'
 };
+
+/** Crack times below this (100 years) count as too fast and are shown as a warning */
+export const WARN_BELOW_SECONDS = 100 * 365.25 * 24 * 3600;
+
+export interface StrengthSummary {
+    /** The online case, e.g. "Online praktisch nicht zu erraten" */
+    readonly online: string;
+    /** The well-protected leak, e.g. "gut geschütztes Datenleck: im Schnitt ≈ 71 Millionen Jahre" */
+    readonly leak: string;
+    /** Both joined: "online · leak" */
+    readonly text: string;
+    /** True if a well-protected leak (bcrypt) would be cracked within WARN_BELOW_SECONDS */
+    readonly warning: boolean;
+}
+
+/**
+ * One honest line for the main view: the online case and, explicitly, a
+ * well-protected (bcrypt) data leak. Poorly protected leaks are only in
+ * the details table.
+ */
+export function strengthSummary(estimates: readonly Pick<CrackTimeEstimate, 'id' | 'seconds'>[]): StrengthSummary {
+    const seconds = (id: string): number => estimates.find(estimate => estimate.id === id)?.seconds ?? 0;
+
+    let online: string;
+    if (seconds('onlineUnthrottled') >= WARN_BELOW_SECONDS) {
+        online = 'Online praktisch nicht zu erraten';
+    } else if (seconds('onlineThrottled') >= WARN_BELOW_SECONDS) {
+        online = 'Online nur sicher, wenn der Dienst Fehlversuche begrenzt';
+    } else {
+        online = 'Schon online schnell zu erraten';
+    }
+
+    const leakSeconds = seconds('offlineBcrypt');
+    const warning = leakSeconds < WARN_BELOW_SECONDS;
+    const duration = formatDuration(leakSeconds);
+    // No-break space: "≈" stays with its number
+    const approx = /^\d/.test(duration) ? '≈\u00a0' + duration : duration;
+    const leak = warning
+        ? `gut geschütztes Datenleck: im Schnitt nur ${approx}, für wichtige Konten zu wenig`
+        : `gut geschütztes Datenleck: im Schnitt ${approx}`;
+    return { online, leak, text: `${online} · ${leak}`, warning };
+}
 
 // ---------------------------------------------------------------------------
 // Number formatting (German)
