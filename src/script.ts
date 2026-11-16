@@ -7,30 +7,29 @@ import {
     formatDecimal,
     formatDuration,
     formatInteger,
+    isDefaultOptions,
     MAX_DIGITS,
-    merksatzSegments,
+    merksatz,
     parseStoredOptions,
-    PHRASE_LABELS,
-    passwordSegments,
+    passwordChunks,
     sanitizeOptions,
     SEPARATOR_CHOICES,
     SiteOptions,
-    Segment,
+    SLOT_HINTS,
     SLOT_LABELS,
-    SLOT_PHRASE,
     strengthBand,
+    strengthSummary,
     SYMBOL_NAMES,
     TRAILING_SYMBOL_CHOICES,
+    WARN_BELOW_SECONDS,
     WordlistId
 } from './format';
-import { getWordlist, WORDLIST_ATTRIBUTION } from './wordlists';
+import { getWordlist } from './wordlists';
 
 // Only the options and the theme are stored. The password is kept in memory
 // only, never logged and never written to storage.
 const OPTIONS_KEY = 'pwgen-options';
 const THEME_KEY = 'theme';
-/** Crack times below this are shown as a warning */
-const WARN_BELOW_SECONDS = 100 * 365.25 * 24 * 3600;
 
 function byId<T extends HTMLElement>(id: string): T {
     const element = document.getElementById(id);
@@ -42,12 +41,11 @@ function byId<T extends HTMLElement>(id: string): T {
 
 function el<K extends keyof HTMLElementTagNameMap>(
     tag: K,
-    props: { className?: string; text?: string; phrase?: string } = {}
+    props: { className?: string; text?: string } = {}
 ): HTMLElementTagNameMap[K] {
     const element = document.createElement(tag);
     if (props.className) element.className = props.className;
     if (props.text !== undefined) element.textContent = props.text;
-    if (props.phrase) element.dataset['phrase'] = props.phrase;
     return element;
 }
 
@@ -124,51 +122,44 @@ function sentenceOptions(options: SiteOptions): SentenceOptions {
 // ---------------------------------------------------------------------------
 // Rendering
 
-function renderSegments(target: HTMLElement, segments: readonly Segment[], breakAfterSeparators: boolean): void {
-    const nodes: Node[] = [];
-    for (const segment of segments) {
-        if (segment.phrase) {
-            nodes.push(el('span', { text: segment.text, phrase: segment.phrase }));
-        } else {
-            nodes.push(el('span', { className: 'sep', text: segment.text }));
-            if (breakAfterSeparators) {
-                nodes.push(el('wbr'));
-            }
-        }
-    }
-    target.replaceChildren(...nodes);
-}
-
 function renderPassword(result: GeneratedSentence): void {
-    renderSegments(byId('password'), passwordSegments(result.parts), true);
-    renderSegments(byId('merksatz'), merksatzSegments(result.parts), false);
-
-    const phrases = passwordSegments(result.parts).flatMap(segment => segment.phrase ? [segment.phrase] : []);
-    byId('legend').replaceChildren(...phrases.map(phrase =>
-        el('li', { text: PHRASE_LABELS[phrase], phrase })));
+    // Plain text; line breaks are allowed only after a separator (<wbr>)
+    const nodes: Node[] = [];
+    passwordChunks(result.parts).forEach((chunk, index) => {
+        if (index > 0) {
+            nodes.push(el('wbr'));
+        }
+        nodes.push(document.createTextNode(chunk));
+    });
+    byId('password').replaceChildren(...nodes);
+    byId('merksatz').textContent = merksatz(result.parts);
 }
 
 function renderStrength(report: StrengthReport): void {
     const bits = report.entropyBits;
     const band = strengthBand(bits);
     const rounded = Math.round(bits);
+    const estimates = crackTimeEstimates(bits);
 
     byId('bits').textContent = `≈ ${rounded} Bit`;
     const bandElement = byId('band');
     bandElement.textContent = band.label;
     bandElement.dataset['band'] = band.id;
 
-    const ruler = byId('ruler');
-    ruler.setAttribute('aria-valuenow', String(rounded));
-    ruler.setAttribute('aria-valuetext', `${rounded} Bit, ${band.label.toLowerCase()}`);
-    const marker = byId('rulerMarker');
-    marker.dataset['band'] = band.id;
+    const meter = byId('meter');
+    meter.dataset['band'] = band.id;
+    meter.setAttribute('aria-valuenow', String(rounded));
+    meter.setAttribute('aria-valuetext', `${rounded} Bit, ${band.label.toLowerCase()}`);
     // CSSOM custom property (allowed by the CSP, unlike inline style attributes)
-    marker.style.setProperty('--pos', `${Math.min(bits, 100)}%`);
+    meter.style.setProperty('--fill', `${Math.min(bits, 100)}%`);
+
+    const summary = strengthSummary(estimates);
+    const leak = el('span', { text: summary.leak, className: summary.warning ? 'is-warning' : undefined });
+    byId('summary').replaceChildren(summary.online + ' · ', leak);
 
     byId('combinations').textContent = formatCount(report.combinations);
 
-    const rows = crackTimeEstimates(bits).map(estimate => {
+    const rows = estimates.map(estimate => {
         const row = el('tr');
         // "Online-Angriff mit Sperre (100 Versuche/Stunde)": the part in
         // parentheses goes on its own, quieter line
@@ -192,10 +183,10 @@ function renderStrength(report: StrengthReport): void {
         const row = el('tr');
         const name = el('th');
         name.scope = 'row';
-        const phrase = SLOT_PHRASE[slot.slot];
-        name.append(el('span', { text: SLOT_LABELS[slot.slot], phrase }));
-        if (phrase === 'subject' || phrase === 'object') {
-            name.append(' ', el('span', { className: 'phrase-hint', text: `(${PHRASE_LABELS[phrase]})` }));
+        name.textContent = SLOT_LABELS[slot.slot];
+        const hint = SLOT_HINTS[slot.slot];
+        if (hint) {
+            name.append(' ', el('span', { className: 'slot-hint', text: `(${hint})` }));
         }
         row.append(
             name,
@@ -224,15 +215,15 @@ function renderNotes(options: SiteOptions): void {
     const wordlistDelta = formatDecimal(bitsFor('main', options.adverb) - bitsFor('kids', options.adverb));
     const wordlistNote = byId('wordlistNote');
     wordlistNote.textContent = options.wordlist === 'kids'
-        ? `Einfachere Wörter, dafür ${wordlistDelta} Bit schwächer als die Standardliste.`
-        : `Die Kinderliste hat einfachere Wörter, ist aber ${wordlistDelta} Bit schwächer.`;
+        ? `Einfachere Wörter, ${wordlistDelta} Bit schwächer als Standard.`
+        : `Kinder: einfachere Wörter, ${wordlistDelta} Bit schwächer.`;
     wordlistNote.classList.toggle('is-warning', options.wordlist === 'kids');
 
     const lengthDelta = formatDecimal(bitsFor(options.wordlist, true) - bitsFor(options.wordlist, false));
     const lengthNote = byId('lengthNote');
     lengthNote.textContent = options.adverb
-        ? `Ohne Adverb ist das Passwort ${lengthDelta} Bit schwächer.`
-        : `Ohne Adverb ${lengthDelta} Bit schwächer.`;
+        ? `Kürzer: ohne Adverb, ${lengthDelta} Bit schwächer.`
+        : `Ohne Adverb, ${lengthDelta} Bit schwächer als Normal.`;
     lengthNote.classList.toggle('is-warning', !options.adverb);
 }
 
@@ -345,7 +336,6 @@ function initCopy(getPassword: () => string): { reset: () => void } {
 
 function init(): void {
     initTheme();
-    byId('attribution').textContent = WORDLIST_ATTRIBUTION + ' ';
 
     const form = byId<HTMLFormElement>('options');
     buildChoices();
@@ -365,13 +355,14 @@ function init(): void {
         writeForm(form, options);
         renderStrength(generatorFor(options.wordlist).describeStrength(sentenceOptions(options)));
         renderNotes(options);
+        byId('customHint').hidden = isDefaultOptions(options);
         regenerate();
     };
 
-    const ruler = byId('ruler');
+    const meter = byId('meter');
     form.addEventListener('change', () => {
-        // Animate the strength marker for changes, not on page load
-        ruler.classList.add('is-live');
+        // Animate the strength bar for changes, not on page load
+        meter.classList.add('is-live');
         options = readForm(form);
         writeStorage(OPTIONS_KEY, JSON.stringify(options));
         update();

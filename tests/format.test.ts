@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { crackTimeEstimates } from 'ger-morph-pw-gen/SentenceGenerator';
 import type { SentenceParts } from 'ger-morph-pw-gen/SentenceGenerator';
 import {
     DEFAULT_OPTIONS,
@@ -7,15 +8,17 @@ import {
     formatDecimal,
     formatDuration,
     formatInteger,
-    merksatzSegments,
+    isDefaultOptions,
+    merksatz,
     parseStoredOptions,
-    passwordSegments,
+    passwordChunks,
     sanitizeOptions,
-    strengthBand
+    strengthBand,
+    strengthSummary,
+    WARN_BELOW_SECONDS
 } from '../src/format';
 
 const NNBSP = ' ';
-const join = (segments: { text: string }[]) => segments.map(s => s.text).join('');
 
 const parts: SentenceParts = {
     subjectAdjective: 'flinker',
@@ -29,19 +32,36 @@ const parts: SentenceParts = {
     separator: '.'
 };
 
-test('passwordSegments joins to the password and tags phrases', () => {
-    const segments = passwordSegments(parts);
-    assert.equal(join(segments), 'flinkerFuchs.malt.leise.roteTomate.42!');
-    assert.deepEqual(segments.filter(s => s.phrase).map(s => s.phrase),
-        ['subject', 'verb', 'adverb', 'object', 'digits']);
-    const short = passwordSegments({ ...parts, adverb: null, digits: '', trailingSymbol: '', separator: ' ' });
-    assert.equal(join(short), 'flinkerFuchs malt roteTomate');
+test('passwordChunks end with their separator and join to the password', () => {
+    assert.deepEqual(passwordChunks(parts), ['flinkerFuchs.', 'malt.', 'leise.', 'roteTomate.', '42!']);
+    const short = passwordChunks({ ...parts, adverb: null, digits: '', trailingSymbol: '', separator: ' ' });
+    assert.deepEqual(short, ['flinkerFuchs ', 'malt ', 'roteTomate']);
+    assert.equal(short.join(''), 'flinkerFuchs malt roteTomate');
 });
 
-test('merksatzSegments builds a natural sentence', () => {
-    assert.equal(join(merksatzSegments(parts)), 'Flinker Fuchs malt leise rote Tomate – 42!');
-    assert.equal(join(merksatzSegments({ ...parts, adverb: null, digits: '', trailingSymbol: '' })),
-        'Flinker Fuchs malt rote Tomate');
+test('merksatz builds a natural sentence', () => {
+    assert.equal(merksatz(parts), 'Flinker Fuchs malt leise rote Tomate – 42!');
+    assert.equal(merksatz({ ...parts, adverb: null, digits: '', trailingSymbol: '' }), 'Flinker Fuchs malt rote Tomate');
+    assert.equal(merksatz({ ...parts, digits: '', trailingSymbol: '%' }), 'Flinker Fuchs malt leise rote Tomate%');
+});
+
+test('strength summary names the well-protected leak and warns when weak', () => {
+    const strong = strengthSummary(crackTimeEstimates(65.3));
+    assert.equal(strong.text,
+        'Online praktisch nicht zu erraten · gut geschütztes Datenleck: im Schnitt ≈\u00a072 Millionen Jahre');
+    assert.equal(strong.warning, false);
+
+    // Kids list, short, no digits
+    const weak = strengthSummary(crackTimeEstimates(43.2));
+    assert.equal(weak.warning, true);
+    assert.match(weak.text, /^Online praktisch nicht zu erraten · .*im Schnitt nur ≈\u00a016 Jahre, für wichtige Konten zu wenig$/);
+
+    assert.match(strengthSummary(crackTimeEstimates(100)).text, /im Schnitt länger als das Universum alt ist$/);
+    assert.match(strengthSummary(crackTimeEstimates(30)).text, /^Online nur sicher, wenn der Dienst Fehlversuche begrenzt/);
+    assert.match(strengthSummary(crackTimeEstimates(10)).text, /^Schon online schnell zu erraten/);
+
+    const atThreshold = crackTimeEstimates(65).map(e => ({ ...e, seconds: e.id === 'offlineBcrypt' ? WARN_BELOW_SECONDS : e.seconds }));
+    assert.equal(strengthSummary(atThreshold).warning, false);
 });
 
 test('strengthBand thresholds', () => {
@@ -93,4 +113,12 @@ test('stored options are sanitised', () => {
         sanitizeOptions({ wordlist: 'x', adverb: 'yes', digits: 7, separator: '-', trailingSymbol: '?', password: 'p' }),
         DEFAULT_OPTIONS);
     assert.equal(sanitizeOptions({ digits: 2.5 }).digits, DEFAULT_OPTIONS.digits);
+});
+
+test('customised options are detected', () => {
+    assert.equal(isDefaultOptions(DEFAULT_OPTIONS), true);
+    assert.equal(isDefaultOptions(parseStoredOptions('{"digits":2}')), true);
+    assert.equal(isDefaultOptions({ ...DEFAULT_OPTIONS, digits: 3 }), false);
+    assert.equal(isDefaultOptions({ ...DEFAULT_OPTIONS, separator: ' ' }), false);
+    assert.equal(isDefaultOptions({ ...DEFAULT_OPTIONS, adverb: false }), false);
 });

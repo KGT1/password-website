@@ -17,9 +17,8 @@
         <header class="masthead">
             <h1>Deutscher Passwort-Generator</h1>
             <button id="themeToggle" class="theme-btn" type="button" aria-pressed="false">Nachtmodus</button>
+            <p class="intro">Ein zufälliger Satz als Passwort. Entsteht in deinem Browser, nichts wird gesendet.</p>
         </header>
-        <p class="intro">Ein zufälliger deutscher Satz als Passwort: leicht zu merken, schwer zu erraten.
-            Alles entsteht in deinem Browser, nichts wird gesendet oder gespeichert.</p>
 
         <noscript>
             <p class="noscript">Diese Seite braucht JavaScript, um das Passwort in deinem Browser zu erzeugen.</p>
@@ -29,70 +28,64 @@
             <section class="sheet" aria-labelledby="passwordHeading">
                 <h2 id="passwordHeading" class="visually-hidden">Dein Passwort</h2>
                 <p id="password" class="password" aria-live="polite" aria-atomic="true"></p>
-                <ul id="legend" class="legend" aria-label="Satzteile im Passwort"></ul>
-                <p class="merksatz-line"><span class="merksatz-label">Merksatz</span>
-                    <span id="merksatz" class="merksatz"></span></p>
+                <p class="merksatz"><span class="visually-hidden">Merksatz: </span><q id="merksatz"></q></p>
                 <div class="actions">
                     <button id="copyBtn" class="btn btn-primary" type="button">Kopieren</button>
-                    <button id="regenerateBtn" class="btn btn-secondary" type="button">Neu generieren</button>
+                    <button id="regenerateBtn" class="btn btn-secondary" type="button" aria-label="Neues Passwort">Neu</button>
                     <span id="copyStatus" class="copy-status" role="status"></span>
                 </div>
-                <p class="layout-note">Tippt sich gleich auf deutscher und englischer Tastatur:
-                    keine Umlaute, kein ß, kein y oder z, nur Satzzeichen, die auf beiden an derselben Stelle liegen.</p>
             </section>
 
-            <div class="columns">
-                <section class="strength" aria-labelledby="strengthHeading">
-                    <h2 id="strengthHeading">Wie stark ist dieses Passwort?</h2>
-                    <p class="score"><span id="bits" class="bits"></span> <span id="band" class="band"></span></p>
-                    <div id="ruler" class="ruler" role="meter" aria-valuemin="0" aria-valuemax="100" aria-labelledby="strengthHeading">
-                        <div class="ruler-bands" aria-hidden="true">
-                            <span class="ruler-band" data-band="weak">Schwach</span>
-                            <span class="ruler-band" data-band="medium">Mittel</span>
-                            <span class="ruler-band" data-band="strong">Stark</span>
-                            <span class="ruler-band" data-band="veryStrong">Sehr stark</span>
-                        </div>
-                        <div class="ruler-scale" aria-hidden="true">
-                            <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100 Bit</span>
-                        </div>
-                        <span id="rulerMarker" class="ruler-marker" aria-hidden="true"></span>
-                    </div>
+            <section class="strength" aria-labelledby="strengthHeading">
+                <h2 id="strengthHeading" class="visually-hidden">Stärke</h2>
+                <p class="score">
+                    <span id="bits" class="bits"></span>
+                    <span id="band" class="band"></span>
+                    <span id="meter" class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-label="Stärke in Bit"><span id="meterFill" class="meter-fill"></span></span>
+                </p>
+                <p id="summary" class="summary"></p>
+            </section>
+
+            <details class="more">
+                <summary>Details zur Sicherheit</summary>
+                <div class="more-body">
                     <p class="combinations">Mögliche Passwörter: <strong id="combinations"></strong></p>
 
                     <table class="crack-table">
                         <caption>Durchschnittliche Zeit, bis ein Angreifer das Passwort errät</caption>
                         <tbody id="crackTimes"></tbody>
                     </table>
-                    <p class="caveat">Gilt nur, wenn du das Passwort unverändert übernimmst.</p>
+                    <p class="note">Gilt nur, wenn du das Passwort unverändert übernimmst.
+                        Tippt sich gleich auf deutscher und englischer Tastatur.</p>
 
-                    <details class="explain">
-                        <summary>Wie wird das berechnet?</summary>
-                        <table class="slot-table">
-                            <thead>
-                                <tr><th scope="col">Satzteil</th><th scope="col">Möglichkeiten</th><th scope="col">Bit</th></tr>
-                            </thead>
-                            <tbody id="slotRows"></tbody>
-                            <tfoot>
-                                <tr><th scope="row">Zusammen</th><td id="slotProduct"></td><td id="slotBits"></td></tr>
-                            </tfoot>
-                        </table>
-                        <p id="formula" class="formula"></p>
-                        <p>Die Bit-Zahl ist der Zweierlogarithmus der Anzahl möglicher Passwörter.
-                            Jedes zusätzliche Bit verdoppelt die Arbeit für einen Angreifer.</p>
-                        <p>Dabei nehmen wir an, dass der Angreifer das Verfahren und die Wortlisten genau kennt.
-                            Die Stärke kommt allein aus dem Zufall: Jeder Satzteil wird unabhängig und gleich
-                            wahrscheinlich mit dem Zufallsgenerator deines Browsers gewählt.</p>
-                        <p>Trennzeichen, das Satzzeichen am Ende und die Groß- und Kleinschreibung folgen festen Regeln.
-                            Sie machen das Passwort nicht stärker und zählen deshalb nicht mit.</p>
-                        <p>Im Durchschnitt muss ein Angreifer die Hälfte aller Möglichkeiten durchprobieren.
-                            Die Geschwindigkeiten sind grobe Größenordnungen: Wie schnell ein Angreifer raten kann,
-                            hängt vor allem davon ab, wie gut ein Dienst die Passwörter speichert.
-                            Jede zusätzliche Ziffer bringt 3,3 Bit.</p>
-                    </details>
-                </section>
+                    <h3>So wird gerechnet</h3>
+                    <table class="slot-table">
+                        <thead>
+                            <tr><th scope="col">Satzteil</th><th scope="col">Möglichkeiten</th><th scope="col">Bit</th></tr>
+                        </thead>
+                        <tbody id="slotRows"></tbody>
+                        <tfoot>
+                            <tr><th scope="row">Zusammen</th><td id="slotProduct"></td><td id="slotBits"></td></tr>
+                        </tfoot>
+                    </table>
+                    <p id="formula" class="formula"></p>
+                    <p>Die Bit-Zahl ist der Zweierlogarithmus der Anzahl möglicher Passwörter.
+                        Jedes zusätzliche Bit verdoppelt die Arbeit für einen Angreifer.
+                        Unter 40 Bit gilt als schwach, ab 60 als stark, ab 80 als sehr stark.</p>
+                    <p>Dabei nehmen wir an, dass der Angreifer das Verfahren und die Wortlisten genau kennt.
+                        Die Stärke kommt allein aus dem Zufall: Jeder Satzteil wird unabhängig und gleich
+                        wahrscheinlich mit dem Zufallsgenerator deines Browsers gewählt.</p>
+                    <p>Trennzeichen, das Satzzeichen am Ende und die Groß- und Kleinschreibung folgen festen Regeln.
+                        Sie machen das Passwort nicht stärker und zählen deshalb nicht mit.</p>
+                    <p>Im Durchschnitt muss ein Angreifer die Hälfte aller Möglichkeiten durchprobieren.
+                        Die Geschwindigkeiten sind grobe Größenordnungen: Wie schnell ein Angreifer raten kann,
+                        hängt vor allem davon ab, wie gut ein Dienst die Passwörter speichert.</p>
+                </div>
+            </details>
 
-                <section class="options" aria-labelledby="optionsHeading">
-                    <h2 id="optionsHeading">Einstellungen</h2>
+            <details class="more">
+                <summary>Einstellungen <span id="customHint" class="custom-hint" hidden>(angepasst)</span></summary>
+                <div class="more-body">
                     <form id="options" class="options-form">
                         <fieldset>
                             <legend>Wortliste</legend>
@@ -127,19 +120,20 @@
                             <legend>Satzzeichen am Ende</legend>
                             <div id="symbolChoices" class="choices choices-tight"></div>
                         </fieldset>
-
-                        <button id="resetBtn" class="btn btn-quiet" type="button">Auf Standard zurücksetzen</button>
                     </form>
-                    <p class="note">Deine Einstellungen werden in diesem Browser gespeichert, Passwörter nie.</p>
-                </section>
-            </div>
+                    <p class="note"><button id="resetBtn" class="btn-quiet" type="button">Auf Standard zurücksetzen</button>
+                        · Deine Einstellungen werden in diesem Browser gespeichert, Passwörter nie.</p>
+                </div>
+            </details>
         </main>
 
         <footer class="footer">
-            <p>Wortlisten: <span id="attribution"></span>
-                Lizenz: <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" rel="license noopener noreferrer">CC BY-SA 4.0</a>.</p>
-            <p>Erzeugt mit <a href="https://github.com/KGT1/ger-morph-pw-gen" rel="noopener noreferrer">ger-morph-pw-gen</a>.
-                Quellcode: <a href="https://github.com/KGT1/password-website" rel="noopener noreferrer">KGT1/password-website</a> (MIT).</p>
+            <p>Wortlisten: <a href="https://www.wiktionary.org/" rel="noopener noreferrer">Wiktionary</a>-Autoren
+                (via <a href="https://kaikki.org/" rel="noopener noreferrer">kaikki.org</a>),
+                <a href="https://github.com/rspeer/wordfreq" rel="noopener noreferrer">wordfreq</a> (Robyn Speer),
+                LaRS-Wortliste/Grundwortschatz Berlin (LISUM) –
+                Lizenz <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" rel="license noopener noreferrer">CC BY-SA 4.0</a>.
+                Code: <a href="https://github.com/KGT1/password-website" rel="noopener noreferrer">MIT</a>.</p>
         </footer>
     </div>
 </body>
