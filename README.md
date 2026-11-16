@@ -24,9 +24,7 @@ Merksatz: „Flinker Fuchs malt leise rote Tomate – 42!“
 | Zeichen  | `!`            | Satzzeichen am Ende: `!`, `$`, `%` oder keins (Standard: `!`) |
 
 Die Teile werden durch ein Trennzeichen verbunden: `.` (Standard), `,`,
-Leerzeichen, `!`, `$` oder `%`. Auf der Seite sind die Satzteile im Passwort und
-im Merksatz farbig und mit unterschiedlichen Linien unterstrichen, wie beim
-Bestimmen von Satzgliedern in der Schule.
+Leerzeichen, `!`, `$` oder `%`.
 
 Jeder Satzteil wird unabhängig und gleich wahrscheinlich mit
 `crypto.getRandomValues` gewählt
@@ -34,7 +32,12 @@ Jeder Satzteil wird unabhängig und gleich wahrscheinlich mit
 
 ## Stärkeanzeige
 
-Die Seite zeigt live, wie stark das Passwort mit den gewählten Einstellungen ist:
+Auf den ersten Blick zeigt die Seite nur das Passwort, den Merksatz, die
+Bit-Zahl mit Einstufung und eine Zeile Fazit (online und bei einem gut
+geschützten Datenleck mit bcrypt). Alles Weitere steht in den eingeklappten
+Abschnitten „Details zur Sicherheit“ und „Einstellungen“.
+
+Die Details zeigen live, wie stark das Passwort mit den gewählten Einstellungen ist:
 
 - **Bit** = Zweierlogarithmus der Anzahl möglicher Passwörter, mit Einstufung:
   unter 40 Schwach, 40–59 Mittel, 60–79 Stark, ab 80 Sehr stark;
